@@ -54,7 +54,7 @@ DRCenter >> gtInspectorChannelsIn: composite [
 	<gtInspectorPresentationOrder: 0> 
 
 	^ (composite fastTable)
-		title: 'Items';
+		title: 'Channels';
 		display: [ messagesByChannel associations ];
 		column: 'Channel' 
 			evaluated: [:each | GTObjectPrinter asTruncatedTextFrom: each key ];
@@ -173,6 +173,14 @@ DRCenter >> removeChannelNamed: aString [
 { #category : #private }
 DRCenter >> session [
 	^ session
+]
+
+{ #category : #storing }
+DRCenter >> store [
+	| file |
+	
+	file := 'record.fuel' asFileReference nextVersion.
+	FLSerializer serialize: self toFileNamed:  file fullName.
 ]
 
 { #category : #updating }
