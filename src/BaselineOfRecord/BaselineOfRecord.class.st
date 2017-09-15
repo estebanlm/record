@@ -12,5 +12,5 @@ BaselineOfRecord >> baseline: spec [
 		spec	
 			baseline: 'DiscordSt' with: [
 				spec repository: 'github://JurajKubelka/DiscordSt:client/src' ];
-			package: #'DiscordRecorder' ].
+			package: #'Record' ].
 ]
