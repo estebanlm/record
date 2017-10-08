@@ -69,7 +69,7 @@ DRDiscordChannel >> update [
 	| channel newMessages |
 	
 	"Update channel itself"
-	channel := self guild channelNamed: self name.
+	channel := self center guild channelNamed: self name.
 	self discordChannel updateFrom: channel.
 	
 	"Initial load (if needed)"

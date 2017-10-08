@@ -2,10 +2,26 @@ Class {
 	#name : #DRChannel,
 	#superclass : #Object,
 	#instVars : [
-		'messages'
+		'messages',
+		'center'
 	],
 	#category : #Record-Core
 }
+
+{ #category : #accessing }
+DRChannel >> center [
+	^ center
+]
+
+{ #category : #accessing }
+DRChannel >> center: aCenter [
+	center := aCenter
+]
+
+{ #category : #accessing }
+DRChannel >> discordChannel [
+	^ nil
+]
 
 { #category : #accessing }
 DRChannel >> messages [

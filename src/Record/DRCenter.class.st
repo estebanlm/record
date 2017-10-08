@@ -27,6 +27,7 @@ DRCenter class >> current [
 
 { #category : #accessing }
 DRCenter >> addChannel: aChannel [
+	aChannel center: self.
 	channels := channels copyWith: aChannel.
 	^ aChannel
 ]
@@ -176,11 +177,8 @@ DRCenter >> recordChannelNamed: aString [
 
 { #category : #private }
 DRCenter >> recordDiscordChannel: channel [
-	| discordChannel |
 	(channels anySatisfy: [ :each | each discordChannel = channel]) ifTrue: [ ^ self ].
-	discordChannel := DRDiscordChannel on: channel.
-	channels := channels copyWith: discordChannel.
-	^ discordChannel
+	^ self addChannel: (DRDiscordChannel on: channel) 
 ]
 
 { #category : #accessing }

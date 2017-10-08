@@ -81,7 +81,7 @@ DRRecordBrowser >> addQueryOn: aPresenter [
 
 { #category : #building }
 DRRecordBrowser >> buildOn: browser [
-	browser 
+	browser
 		column: #channels;
 		column: [ :c |
 			c 
@@ -150,7 +150,7 @@ DRRecordBrowser >> doAddChannelThen: aBlock [
 
 { #category : #actions }
 DRRecordBrowser >> doConfigureThen: aBlock [
-	(TkMagritteEditor object: DRCenterOld current) go
+	(TkMagritteEditor object: DRCenter current) go
 		ifNotNil: aBlock
 ]
 
@@ -167,7 +167,7 @@ DRRecordBrowser >> doUpdateAllChannelsThen: aBlock [
 	UIManager default informUserDuring: [ :bar | 
 		self center channels do: [ :eachChannel | 
 			bar label: ('Updating channel "{1}".' format: { eachChannel name }).
-			[ self center updateChannel: eachChannel ]
+			[ eachChannel update ]
 			on: DRUpdateProgressNotification 
 			do: [ :e | 
 				bar label: ('Updating channel "{1}" ({2}).' format: { eachChannel name. e messageText }).
@@ -179,7 +179,7 @@ DRRecordBrowser >> doUpdateAllChannelsThen: aBlock [
 DRRecordBrowser >> doUpdateChannel: aChannel then: aBlock [
 	UIManager default informUserDuring: [ :bar | 
 		bar label: ('Updating channel "{1}".' format: { aChannel name }).
-		[ self center updateChannel: aChannel ]
+		[ aChannel update ]
 		on: DRUpdateProgressNotification 
 		do: [ :e | 
 			bar label: ('Updating channel "{1}" ({2}).' format: { aChannel name. e messageText }).
