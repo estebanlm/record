@@ -13,7 +13,7 @@ Class {
 	#classVars : [
 		'Current'
 	],
-	#category : #Record
+	#category : #Record-Core
 }
 
 { #category : #accessing }
