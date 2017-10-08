@@ -48,3 +48,8 @@ DRRecordBrowser >> compose [
 DRRecordBrowser >> open [
 	self openOn: Object new
 ]
+
+{ #category : #accessing }
+DRRecordBrowser >> title [
+	^ 'Record browser'
+]
