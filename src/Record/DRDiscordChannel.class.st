@@ -24,6 +24,12 @@ DRDiscordChannel >> discordChannel [
 	^ discordChannel
 ]
 
+{ #category : #accessing }
+DRDiscordChannel >> id [
+	^ self discordChannel id
+	
+]
+
 { #category : #initialization }
 DRDiscordChannel >> initializeChannel: aDiscordChannel [
 	self initialize.
@@ -80,5 +86,5 @@ DRDiscordChannel >> update [
 	"Now update"
 	newMessages := self loadNewMessagesFrom: self discordChannel lastMessage: messages first.
 	newMessages ifNotEmpty: [ 
-		messages addAll: newMessages ]
+		messages addAllFirst: newMessages ]
 ]

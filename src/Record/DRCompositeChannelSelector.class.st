@@ -30,8 +30,8 @@ DRCompositeChannelSelector >> initializeCenter: aCenter [
 
 { #category : #enumerating }
 DRCompositeChannelSelector >> select: aBlock [
-	^ self center channels 
+	^ self center channels
 		inject: (OrderedCollection new: 1000)
 		into: [ :all :each | 
-			all addAll: ((self center messagesForChannel: each) select: aBlock); yourself ]
+			all addAll: (each messages select: aBlock); yourself ]
 ]

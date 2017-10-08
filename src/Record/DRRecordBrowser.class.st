@@ -16,7 +16,7 @@ DRRecordBrowser >> addChannelListOn: aPresenter [
 			entitled: 'Add channel';
 		act: [ :presentation | self doUpdateAllChannelsThen: [ presentation update ] ] 
 			icon: #glamorousRefresh asIcon 
-			entitled: 'Refresh all channels';
+			entitled: 'Update all channels';
 		selectionAct: [ :presentation | 
 			self 
 				doUpdateChannel: presentation selection
@@ -35,12 +35,28 @@ DRRecordBrowser >> addChannelListOn: aPresenter [
 ]
 
 { #category : #building }
-DRRecordBrowser >> addChannelMessageListOn: a [
-	a fastTable
+DRRecordBrowser >> addChannelMessageListOn: aPresenter [
+	self addChannelMessageListOn: aPresenter includeChannel: false	
+
+]
+
+{ #category : #building }
+DRRecordBrowser >> addChannelMessageListOn: aPresenter includeChannel: includeChannel [
+	| table |
+	(table := aPresenter fastTable)
 		title: [ :channel | '{1} ({2} messages)' format: { channel name. channel numberOfMessages } ];
 		display: [ :channel | channel messages ];
+		act: [ :presentation :entity | 
+				self 
+					doUpdateChannel: entity 
+					then: [ presentation pane browser update ] ] 
+			icon: #glamorousRefresh asIcon 
+			entitled: 'Refresh all channels';
 		column: 'Date' evaluated: [ :message | message timestampString ];
-		column: 'Author' evaluated: [ :message | message author username ]
+		column: 'Author' evaluated: [ :message | message author username ].
+		
+	includeChannel ifTrue: [ 
+		table column: 'Channel' evaluated: [ :message | (self channelForMessage: message) name ] ]
 ]
 
 { #category : #building }
@@ -73,7 +89,7 @@ DRRecordBrowser >> addQueryOn: aPresenter [
 		title: 'Query';
 		display: [ self center queries ];
 		variableBindings: [ :channel | 
-			{ #channel -> (self center messagesForChannel: channel).
+			{ #channel -> channel messages.
 			  #allChannels -> (DRCompositeChannelSelector on: self center) } ];
 		onChangeOfPort: #text act: [ :presentation | self center queries: presentation text ];
 		installDefaultSelectionActions
@@ -85,21 +101,31 @@ DRRecordBrowser >> buildOn: browser [
 		column: #channels;
 		column: [ :c |
 			c 
+				row: #queries;
 				row: #messages;
 				row: #detail span: 2 ]
 			span: 3.
 
 	browser transmit 
 		to: #channels; 
-		andShow: [ :a | 
-			self addChannelListOn: a.
-			self addQueryOn: a ].
+		andShow: [ :a | self addChannelListOn: a ].
 		
+	browser transmit
+		from: #channels; 
+		to: #queries;
+		andShow: [ :a | self addQueryOn: a ].		
+		
+	browser transmit 
+		from: #queries; 
+		to: #messages; 
+		transformation: [ :list | DRVolatileChannel messages: list ];
+		andShow: [ :a | self addChannelMessageListOn: a includeChannel: true ].
+
 	browser transmit 
 		from: #channels; 
 		to: #messages; 
 		andShow: [ :a | self addChannelMessageListOn: a ].
-		
+				
 	browser transmit 
 		from: #messages; 
 		to: #detail; 
@@ -109,6 +135,11 @@ DRRecordBrowser >> buildOn: browser [
 { #category : #accessing }
 DRRecordBrowser >> center [
 	^ DRCenter current
+]
+
+{ #category : #private }
+DRRecordBrowser >> channelForMessage: aMessage [
+	^ self center channels detect: [ :each | each id = aMessage channelId ]
 ]
 
 { #category : #accessing }

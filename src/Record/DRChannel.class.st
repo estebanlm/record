@@ -24,6 +24,11 @@ DRChannel >> discordChannel [
 ]
 
 { #category : #accessing }
+DRChannel >> id [
+	^ nil
+]
+
+{ #category : #accessing }
 DRChannel >> messages [
 	^ messages
 ]
