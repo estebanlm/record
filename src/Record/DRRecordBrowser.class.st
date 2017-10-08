@@ -31,21 +31,16 @@ DRRecordBrowser >> addChannelListOn: aPresenter [
 			entitled: 'Remove channel';
 		display: [ self channels sorted: [ :a :b | a name < b name ] ];
 		format: [ :channel | 
-			'{1} ({2})' format: { channel name. (self center numberOfMessagesForChannel: channel) } ]
+			'{1} ({2})' format: { channel name. channel numberOfMessages } ]
 ]
 
 { #category : #building }
 DRRecordBrowser >> addChannelMessageListOn: a [
 	a fastTable
-		title: [ :channel | '{1} ({2} messages)' format: { channel name. self center numberOfMessagesForChannel: channel } ];
-		display: [ :channel | self center messagesForChannel: channel ];
+		title: [ :channel | '{1} ({2} messages)' format: { channel name. channel numberOfMessages } ];
+		display: [ :channel | channel messages ];
 		column: 'Date' evaluated: [ :message | message timestampString ];
-		column: 'Author' evaluated: [ :message | message author username ]";
-		column: 'Embeds' 
-			evaluated: [ :message | 
-				message embeds 
-					ifNotEmpty: [ :embeds | embeds size ]
-					ifEmpty: [ '' ] ]"
+		column: 'Author' evaluated: [ :message | message author username ]
 ]
 
 { #category : #building }
@@ -73,22 +68,15 @@ DRRecordBrowser >> addMessageOn: aPresenter [
 ]
 
 { #category : #building }
-DRRecordBrowser >> addQueryListOn: aPresenter [
-	aPresenter fastList 
-		title: 'Queries';
-		display: [ self center queries sorted: [ :a :b | a description < b description ] ];
-		format: #shortDescription;
-		yourself
-]
-
-{ #category : #building }
-DRRecordBrowser >> addQueryOn: a [
-	a pharoScript
+DRRecordBrowser >> addQueryOn: aPresenter [
+	aPresenter pharoScript
 		title: 'Query';
 		display: [ self center queries ];
 		variableBindings: [ :channel | 
-			{ #channel -> channel.
-			  #allChannels -> (DRCompositeChannelSelector on: self center) } ]
+			{ #channel -> (self center messagesForChannel: channel).
+			  #allChannels -> (DRCompositeChannelSelector on: self center) } ];
+		onChangeOfPort: #text act: [ :presentation | self center queries: presentation text ];
+		installDefaultSelectionActions
 ]
 
 { #category : #building }
@@ -105,14 +93,12 @@ DRRecordBrowser >> buildOn: browser [
 		to: #channels; 
 		andShow: [ :a | 
 			self addChannelListOn: a.
-			"self addQueryListOn: a" ].
+			self addQueryOn: a ].
 		
 	browser transmit 
 		from: #channels; 
 		to: #messages; 
-		andShow: [ :a | 
-			self addChannelMessageListOn: a.
-			self addQueryOn: a ].
+		andShow: [ :a | self addChannelMessageListOn: a ].
 		
 	browser transmit 
 		from: #messages; 
@@ -127,7 +113,7 @@ DRRecordBrowser >> center [
 
 { #category : #accessing }
 DRRecordBrowser >> channels [
-	^ DRCenter current channels
+	^ self center channels
 ]
 
 { #category : #building }
@@ -164,7 +150,7 @@ DRRecordBrowser >> doAddChannelThen: aBlock [
 
 { #category : #actions }
 DRRecordBrowser >> doConfigureThen: aBlock [
-	(TkMagritteEditor object: DRCenter current) go
+	(TkMagritteEditor object: DRCenterOld current) go
 		ifNotNil: aBlock
 ]
 

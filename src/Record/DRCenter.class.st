@@ -12,7 +12,6 @@ Class {
 		'email',
 		'password',
 		'channels',
-		'messagesByChannel',
 		'queries'
 	],
 	#classVars : [
@@ -24,6 +23,12 @@ Class {
 { #category : #accessing }
 DRCenter class >> current [
 	^ Current ifNil: [ Current := self new ]
+]
+
+{ #category : #accessing }
+DRCenter >> addChannel: aChannel [
+	channels := channels copyWith: aChannel.
+	^ aChannel
 ]
 
 { #category : #accessing }
@@ -100,39 +105,11 @@ DRCenter >> email: anEmail password: aPassword [
 ]
 
 { #category : #private }
-DRCenter >> findChannelNamed: aString [ 
+DRCenter >> findDiscordChannelNamed: aString [ 
 	^ self client meGuilds 
 		detect: [ :each | each name = self guildName ]
 		ifFound: [ :each | each channelNamed: aString ]
 		ifNone: [ DRError signal: ('Channel "{1}" not found.' format: {aString}) ]
-]
-
-{ #category : #gt-inspector-extension }
-DRCenter >> gtInspectorChannelsIn: composite [
-	<gtInspectorPresentationOrder: 0> 
-
-	^ (composite fastTable)
-		title: 'Channels';
-		display: [ messagesByChannel associations ];
-		column: 'Channel' 
-			evaluated: [:each | GTObjectPrinter asTruncatedTextFrom: each key ];
-		column: 'Messages' 
-			evaluated: [:each | GTObjectPrinter asTruncatedTextFrom: each value ];
-		selectionAct: [ :table |
-			table rawSelection do: [ :assoc | self removeKey: assoc key ].
-			table update ]
-			entitled: 'Remove item(s)';
-		selectionPopulate: #selection 
-			entitled: 'Open key'
-			with: [ :table | (table rawSelection collect: #key) gtInspectorInterestingObject ];
-		beMultiple;
-		send: [ :selection | 
-			selection isNil 
-			ifTrue:[nil]
-			ifFalse:[ (selection size = 1) 
-				ifTrue: [ selection anyOne value ] 
-				ifFalse: [ selection collect: #value ] ] ]
-
 ]
 
 { #category : #private }
@@ -160,55 +137,11 @@ DRCenter >> initialize [
 	queries := ''
 ]
 
-{ #category : #'private loading' }
-DRCenter >> loadAllMessagesFrom: aChannel [
-	^ OrderedCollection new: 1000 streamContents: [ :stream | 
-		| messages |
-		messages := aChannel messages. 
-		[ messages notEmpty ]
-		whileTrue: [ 
-			stream nextPutAll: messages.
-			DRUpdateProgressNotification signal: stream size.
-			messages := aChannel 
-				messagesBefore: (messages last id)
-				limit: 100 ] ]
-]
-
-{ #category : #'private loading' }
-DRCenter >> loadNewMessagesFrom: aChannel lastMessage: message [
-	| lastId |
-	lastId := message id.
-	^ OrderedCollection new: 1000 streamContents: [ :stream | 
-		| messages |
-		[ 
-			messages := aChannel messagesAfter: lastId limit: 100.
-			messages notEmpty ]
-		whileTrue: [ 
-			stream nextPutAll: messages.
-			DRUpdateProgressNotification signal: stream size.
-			lastId := messages first id ] ]
-]
-
-{ #category : #accessing }
-DRCenter >> messagesByChannel [
-	^ messagesByChannel
-]
-
-{ #category : #accessing }
-DRCenter >> messagesForChannel: aChannel [
-	^ messagesByChannel at: aChannel ifAbsent: [ #() ]
-]
-
 { #category : #'private factory' }
 DRCenter >> newClient [
 	^ DSClient new
 	email: email password: password;
 	login
-]
-
-{ #category : #accessing }
-DRCenter >> numberOfMessagesForChannel: aChannel [
-	^ (self messagesForChannel: aChannel) size
 ]
 
 { #category : #private }
@@ -227,10 +160,8 @@ DRCenter >> queries [
 ]
 
 { #category : #accessing }
-DRCenter >> recordChannel: channel [
-	(channels includes: channel) ifTrue: [ ^ self ].
-	channels := channels copyWith: channel.
-	^ channel
+DRCenter >> queries: aStringOrText [
+	queries := aStringOrText asString
 ]
 
 { #category : #accessing }
@@ -239,14 +170,23 @@ DRCenter >> recordChannelNamed: aString [
 	channels 
 		detect: [ :each | each name = aString ]
 		ifFound: [ ^ self ].
-	channel := 	self findChannelNamed: aString.	
-	^ self recordChannel: channel
+	channel := 	self findDiscordChannelNamed: aString.	
+	^ self recordDiscordChannel: channel
+]
+
+{ #category : #private }
+DRCenter >> recordDiscordChannel: channel [
+	| discordChannel |
+	(channels anySatisfy: [ :each | each discordChannel = channel]) ifTrue: [ ^ self ].
+	discordChannel := DRDiscordChannel on: channel.
+	channels := channels copyWith: discordChannel.
+	^ discordChannel
 ]
 
 { #category : #accessing }
 DRCenter >> removeChannel: aChannel [
-	channels := channels copyWithout: aChannel.
-	messagesByChannel removeKey: aChannel ifAbsent: []
+	channels := channels copyWithout: aChannel
+	
 ]
 
 { #category : #accessing }
@@ -254,7 +194,6 @@ DRCenter >> removeChannelNamed: aString [
 	channels 
 		detect: [ :each | each name = aString ] 
 		ifFound: [ :each | self removeChannel: each ]
-	
 ]
 
 { #category : #private }
@@ -272,25 +211,5 @@ DRCenter >> store [
 
 { #category : #updating }
 DRCenter >> updateAll [
-	self channels do: [ :each | self updateChannel: each ]
-]
-
-{ #category : #updating }
-DRCenter >> updateChannel: aChannel [
-	| messages channel newMessages |
-	
-	"Update channel itself"
-	channel := self guild channelNamed: aChannel name.
-	aChannel updateFrom: channel.
-	
-	"Initial load (if needed)"
-	messages := messagesByChannel at: aChannel ifAbsent: [ nil ].
-	messages isEmptyOrNil ifTrue: [ 
-		messages := messagesByChannel at: aChannel put: (self loadAllMessagesFrom: aChannel) ].
-	messages ifEmpty: [ ^ self ].
-	
-	"Now update"
-	newMessages := self loadNewMessagesFrom: aChannel lastMessage: messages first.
-	newMessages ifNotEmpty: [ 
-		messages addAll: newMessages ]
+	self channels do: [ :each | each update ]
 ]
