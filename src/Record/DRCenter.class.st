@@ -1,3 +1,7 @@
+"
+I'm a record center. 
+I keep guild and channels I'm analysing.
+"
 Class {
 	#name : #DRCenter,
 	#superclass : #Object,
@@ -8,7 +12,8 @@ Class {
 		'email',
 		'password',
 		'channels',
-		'messagesByChannel'
+		'messagesByChannel',
+		'queries'
 	],
 	#classVars : [
 		'Current'
@@ -33,6 +38,59 @@ DRCenter >> client [
 			client := nil.
 			session := Smalltalk session ].
 	^ client ifNil: [ client := self newClient ]
+]
+
+{ #category : #descriptions }
+DRCenter >> descriptionContainer [
+	^ super descriptionContainer
+		label: 'Record center';
+		yourself
+]
+
+{ #category : #descriptions }
+DRCenter >> descriptionEmail [
+	<magritteDescription>
+	
+	^ MAStringDescription new
+		priority: 20;
+		label: 'Email';
+		accessor: #email;
+		beRequired;
+		yourself
+]
+
+{ #category : #descriptions }
+DRCenter >> descriptionGuild [
+	<magritteDescription>
+	
+	^ MAStringDescription new
+		priority: 10;
+		label: 'Guild';
+		accessor: #guildName;
+		beRequired;
+		yourself
+]
+
+{ #category : #descriptions }
+DRCenter >> descriptionPassword [
+	<magritteDescription>
+	
+	^ MAPasswordDescription new
+		priority: 30;
+		label: 'Password';
+		accessor: #password;
+		beRequired;
+		yourself
+]
+
+{ #category : #private }
+DRCenter >> email [
+	^ email
+]
+
+{ #category : #private }
+DRCenter >> email: anObject [
+	email := anObject
 ]
 
 { #category : #accessing }
@@ -98,7 +156,8 @@ DRCenter >> guildName: anObject [
 DRCenter >> initialize [
 	super initialize.
 	channels := #().
-	messagesByChannel := Dictionary new
+	messagesByChannel := Dictionary new.
+	queries := ''
 ]
 
 { #category : #'private loading' }
@@ -109,6 +168,7 @@ DRCenter >> loadAllMessagesFrom: aChannel [
 		[ messages notEmpty ]
 		whileTrue: [ 
 			stream nextPutAll: messages.
+			DRUpdateProgressNotification signal: stream size.
 			messages := aChannel 
 				messagesBefore: (messages last id)
 				limit: 100 ] ]
@@ -125,12 +185,18 @@ DRCenter >> loadNewMessagesFrom: aChannel lastMessage: message [
 			messages notEmpty ]
 		whileTrue: [ 
 			stream nextPutAll: messages.
+			DRUpdateProgressNotification signal: stream size.
 			lastId := messages first id ] ]
 ]
 
 { #category : #accessing }
 DRCenter >> messagesByChannel [
 	^ messagesByChannel
+]
+
+{ #category : #accessing }
+DRCenter >> messagesForChannel: aChannel [
+	^ messagesByChannel at: aChannel ifAbsent: [ #() ]
 ]
 
 { #category : #'private factory' }
@@ -141,9 +207,30 @@ DRCenter >> newClient [
 ]
 
 { #category : #accessing }
+DRCenter >> numberOfMessagesForChannel: aChannel [
+	^ (self messagesForChannel: aChannel) size
+]
+
+{ #category : #private }
+DRCenter >> password [
+	^ password
+]
+
+{ #category : #private }
+DRCenter >> password: anObject [
+	password := anObject
+]
+
+{ #category : #accessing }
+DRCenter >> queries [
+	^ queries ifNil: [ queries := '' ]
+]
+
+{ #category : #accessing }
 DRCenter >> recordChannel: channel [
 	(channels includes: channel) ifTrue: [ ^ self ].
-	channels := channels copyWith: channel
+	channels := channels copyWith: channel.
+	^ channel
 ]
 
 { #category : #accessing }
@@ -153,13 +240,13 @@ DRCenter >> recordChannelNamed: aString [
 		detect: [ :each | each name = aString ]
 		ifFound: [ ^ self ].
 	channel := 	self findChannelNamed: aString.	
-	self recordChannel: channel
+	^ self recordChannel: channel
 ]
 
 { #category : #accessing }
 DRCenter >> removeChannel: aChannel [
 	channels := channels copyWithout: aChannel.
-	messagesByChannel removeKey: aChannel
+	messagesByChannel removeKey: aChannel ifAbsent: []
 ]
 
 { #category : #accessing }
@@ -199,15 +286,11 @@ DRCenter >> updateChannel: aChannel [
 	"Initial load (if needed)"
 	messages := messagesByChannel at: aChannel ifAbsent: [ nil ].
 	messages isEmptyOrNil ifTrue: [ 
-		messages := messagesByChannel 
-			at: aChannel
-			put: (self loadAllMessagesFrom: aChannel) ].
+		messages := messagesByChannel at: aChannel put: (self loadAllMessagesFrom: aChannel) ].
 	messages ifEmpty: [ ^ self ].
 	
 	"Now update"
 	newMessages := self loadNewMessagesFrom: aChannel lastMessage: messages first.
 	newMessages ifNotEmpty: [ 
-		messagesByChannel 
-			at: aChannel
-			put: newMessages, messages ]
+		messages addAll: newMessages ]
 ]
